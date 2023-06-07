@@ -25,13 +25,24 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
 
+    // collections
     const classCollection = client.db("campDB").collection("classes");
+    const userCollection = client.db("campDB").collection("users");
 
+    // Martial Art classes
     app.get("/classes", async (req, res) => {
       const result = await classCollection
-        .find({})
+        .find({ status: "approved" })
         .sort({ enrolledStudents: -1 })
         .limit(6)
+        .toArray();
+      res.send(result);
+    });
+
+    // instructors
+    app.get("/instructors", async (req, res) => {
+      const result = await userCollection
+        .find({ role: "instructor" })
         .toArray();
       res.send(result);
     });
