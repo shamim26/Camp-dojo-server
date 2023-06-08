@@ -28,8 +28,11 @@ async function run() {
     // collections
     const classCollection = client.db("campDB").collection("classes");
     const userCollection = client.db("campDB").collection("users");
+    const selectedClassCollection = client
+      .db("campDB")
+      .collection("selected-class");
 
-    // classes
+    // all classes
     app.get("/classes", async (req, res) => {
       const result = await classCollection
         .find({ status: "approved" })
@@ -43,6 +46,22 @@ async function run() {
       const result = await classCollection
         .find({ status: "approved" })
         .toArray();
+      res.send(result);
+    });
+
+    // selected classes
+    app.get("/selected-classes/:email", async (req, res) => {
+      const result = await selectedClassCollection
+        .find({
+          studentEmail: req.params.email,
+        })
+        .toArray();
+      res.send(result);
+    });
+
+    app.post("/selected-classes", async (req, res) => {
+      const singleClass = req.body;
+      const result = await selectedClassCollection.insertOne(singleClass);
       res.send(result);
     });
 
