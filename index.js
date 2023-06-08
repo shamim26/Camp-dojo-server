@@ -109,6 +109,14 @@ async function run() {
     });
 
     // payment api
+    app.get("/payment-history", async (req, res) => {
+      const result = await paymentCollection
+        .find({ email: req.query.email })
+        .sort({ date: -1 })
+        .toArray();
+      res.send(result);
+    });
+
     app.post("/payments", async (req, res) => {
       const paymentResult = await paymentCollection.insertOne(req.body);
       const insertResult = await enrolledCollection.insertOne(
