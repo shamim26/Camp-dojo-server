@@ -32,6 +32,7 @@ async function run() {
     const selectedClassCollection = client
       .db("campDB")
       .collection("selected-class");
+    const paymentCollection = client.db("campDB").collection("payments");
 
     // all classes
     app.get("/classes", async (req, res) => {
@@ -94,6 +95,26 @@ async function run() {
       res.send({
         clientSecret: paymentIntent.client_secret,
       });
+    });
+
+    // payment api
+    app.post("/payments", async (req, res) => {
+      const paymentResult = await paymentCollection.insertOne(req.body);
+      const deleteResult = await selectedClassCollection.deleteOne({
+        _id: new ObjectId(req.body.classItem._id),
+      });
+      const filter = { _id: new ObjectId(req.body.classItem?.classId) };
+      const updateDoc = {
+        $inc: {
+          availableSeats: -1,
+          enrolledStudents: 1,
+        },
+      };
+      const updateDocResult = await classCollection.updateOne(
+        filter,
+        updateDoc
+      );
+      res.send({ paymentResult, deleteResult, updateDocResult });
     });
 
     // Send a ping to confirm a successful connection
