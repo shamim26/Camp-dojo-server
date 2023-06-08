@@ -33,6 +33,7 @@ async function run() {
       .db("campDB")
       .collection("selected-class");
     const paymentCollection = client.db("campDB").collection("payments");
+    const enrolledCollection = client.db("campDB").collection("enrolled-class");
 
     // all classes
     app.get("/classes", async (req, res) => {
@@ -74,6 +75,16 @@ async function run() {
       res.send(result);
     });
 
+    // enrolled classes
+    app.get("/enrolled-classes", async (req, res) => {
+      const result = await enrolledCollection
+        .find({
+          studentEmail: req.query.email,
+        })
+        .toArray();
+      res.send(result);
+    });
+
     // instructors
     app.get("/instructors", async (req, res) => {
       const result = await userCollection
@@ -100,6 +111,9 @@ async function run() {
     // payment api
     app.post("/payments", async (req, res) => {
       const paymentResult = await paymentCollection.insertOne(req.body);
+      const insertResult = await enrolledCollection.insertOne(
+        req.body.classItem
+      );
       const deleteResult = await selectedClassCollection.deleteOne({
         _id: new ObjectId(req.body.classItem._id),
       });
@@ -114,7 +128,7 @@ async function run() {
         filter,
         updateDoc
       );
-      res.send({ paymentResult, deleteResult, updateDocResult });
+      res.send({ paymentResult, insertResult, deleteResult, updateDocResult });
     });
 
     // Send a ping to confirm a successful connection
