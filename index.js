@@ -29,12 +29,19 @@ async function run() {
     const classCollection = client.db("campDB").collection("classes");
     const userCollection = client.db("campDB").collection("users");
 
-    // Martial Art classes
+    // classes
     app.get("/classes", async (req, res) => {
       const result = await classCollection
         .find({ status: "approved" })
         .sort({ enrolledStudents: -1 })
         .limit(6)
+        .toArray();
+      res.send(result);
+    });
+
+    app.get("/approved-classes", async (req, res) => {
+      const result = await classCollection
+        .find({ status: "approved" })
         .toArray();
       res.send(result);
     });
