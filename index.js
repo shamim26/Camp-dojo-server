@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 5100;
 
@@ -50,10 +50,10 @@ async function run() {
     });
 
     // selected classes
-    app.get("/selected-classes/:email", async (req, res) => {
+    app.get("/selected-classes", async (req, res) => {
       const result = await selectedClassCollection
         .find({
-          studentEmail: req.params.email,
+          studentEmail: req.query.email,
         })
         .toArray();
       res.send(result);
@@ -62,6 +62,13 @@ async function run() {
     app.post("/selected-classes", async (req, res) => {
       const singleClass = req.body;
       const result = await selectedClassCollection.insertOne(singleClass);
+      res.send(result);
+    });
+
+    app.delete("/selected-classes/:id", async (req, res) => {
+      const result = await selectedClassCollection.deleteOne({
+        _id: new ObjectId(req.params.id),
+      });
       res.send(result);
     });
 
