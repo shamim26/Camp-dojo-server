@@ -108,6 +108,7 @@ async function run() {
       res.send(result);
     });
 
+    // show approved classes
     app.get("/approved-classes", async (req, res) => {
       const result = await classCollection
         .find({ status: "approved" })
@@ -125,7 +126,26 @@ async function run() {
       res.send(result);
     });
 
-    // post class from instructor
+    // enrolled classes
+    app.get("/enrolled-classes", verifyJwt, async (req, res) => {
+      const result = await enrolledCollection
+        .find({
+          studentEmail: req.query.email,
+        })
+        .toArray();
+      res.send(result);
+    });
+
+    // get class for the instructors
+    app.get("/my-classes", verifyJwt, verifyInstructor, async (req, res) => {
+      const email = req.query.email;
+      const result = await classCollection
+        .find({ instructorEmail: email })
+        .toArray();
+      res.send(result);
+    });
+
+    // add class from instructors
     app.post("/classes", verifyJwt, verifyInstructor, async (req, res) => {
       const result = await classCollection.insertOne(req.body);
       res.send(result);
@@ -138,20 +158,44 @@ async function run() {
       res.send(result);
     });
 
+    // update feedback
+    app.put("/classes-feedback", verifyJwt, verifyAdmin, async (req, res) => {
+      console.log(req.body);
+      const options = { upsert: true };
+      const filter = { _id: new ObjectId(req.body.id) };
+      const updateDoc = {
+        $set: {
+          feedback: req.body.feedback,
+        },
+      };
+      const result = await classCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+      res.send(result);
+    });
+
+    // update status
+    app.put("/classes-status", verifyJwt, verifyAdmin, async (req, res) => {
+      const id = req.body.id;
+      const status = req.body.status;
+      const updateDoc = {
+        $set: {
+          status: status,
+        },
+      };
+      const result = await classCollection.updateOne(
+        { _id: new ObjectId(id) },
+        updateDoc
+      );
+      res.send(result);
+    });
+
     app.delete("/selected-classes/:id", async (req, res) => {
       const result = await selectedClassCollection.deleteOne({
         _id: new ObjectId(req.params.id),
       });
-      res.send(result);
-    });
-
-    // enrolled classes
-    app.get("/enrolled-classes", verifyJwt, async (req, res) => {
-      const result = await enrolledCollection
-        .find({
-          studentEmail: req.query.email,
-        })
-        .toArray();
       res.send(result);
     });
 
@@ -160,11 +204,9 @@ async function run() {
     // check admin
     app.get("/users/admin/:email", verifyJwt, async (req, res) => {
       const email = req.params.email;
-
       if (req.decoded.email !== email) {
         res.send({ admin: false });
       }
-
       const user = await userCollection.findOne({ email: email });
       const result = { admin: user.role === "admin" };
       res.send(result);
@@ -173,11 +215,9 @@ async function run() {
     // check instructor
     app.get("/users/instructor/:email", verifyJwt, async (req, res) => {
       const email = req.params.email;
-
       if (req.decoded.email !== email) {
         res.send({ instructor: false });
       }
-
       const user = await userCollection.findOne({ email: email });
       const result = { instructor: user.role === "instructor" };
       res.send(result);
