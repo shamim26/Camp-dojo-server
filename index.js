@@ -3,12 +3,34 @@ const cors = require("cors");
 require("dotenv").config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const jwt = require("jsonwebtoken");
 const app = express();
 const port = process.env.PORT || 5100;
 
 // middleware
 app.use(cors());
 app.use(express.json());
+
+// verify jwt
+function verifyJwt(req, res, next) {
+  const authorization = req.headers.authorization;
+  if (!authorization) {
+    return res
+      .status(401)
+      .send({ error: true, message: "Unauthorized Access" });
+  }
+  const token = authorization.split(" ")[1];
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return res
+        .status(401)
+        .send({ error: true, message: "unauthorized access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+}
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@clustersss.lzzpxzj.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -35,6 +57,15 @@ async function run() {
     const paymentCollection = client.db("campDB").collection("payments");
     const enrolledCollection = client.db("campDB").collection("enrolled-class");
 
+    // jwt
+    app.post("/jwt", (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.JWT_SECRET, {
+        expiresIn: "10m",
+      });
+      res.send({ token });
+    });
+
     // all classes
     app.get("/classes", async (req, res) => {
       const result = await classCollection
@@ -53,7 +84,7 @@ async function run() {
     });
 
     // selected classes
-    app.get("/selected-classes", async (req, res) => {
+    app.get("/selected-classes", verifyJwt, async (req, res) => {
       const result = await selectedClassCollection
         .find({
           studentEmail: req.query.email,
@@ -76,7 +107,7 @@ async function run() {
     });
 
     // enrolled classes
-    app.get("/enrolled-classes", async (req, res) => {
+    app.get("/enrolled-classes", verifyJwt, async (req, res) => {
       const result = await enrolledCollection
         .find({
           studentEmail: req.query.email,
@@ -85,16 +116,28 @@ async function run() {
       res.send(result);
     });
 
-    // instructors
-    app.get("/instructors", async (req, res) => {
+    /*  user api */
+
+    // get instructors
+    app.get("/users", async (req, res) => {
       const result = await userCollection
         .find({ role: "instructor" })
         .toArray();
       res.send(result);
     });
 
+    // save users
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      const existingUser = await userCollection.findOne({ email: user.email });
+      if (existingUser) {
+        return res.send({ message: "user already registered" });
+      }
+      const result = await userCollection.insertOne(user);
+      res.send(result);
+    });
     // payment intents
-    app.post("/create-payment-intents", async (req, res) => {
+    app.post("/create-payment-intents", verifyJwt, async (req, res) => {
       const { price } = req.body;
       const amount = price * 100;
       const paymentIntent = await stripe.paymentIntents.create({
@@ -109,7 +152,7 @@ async function run() {
     });
 
     // payment api
-    app.get("/payment-history", async (req, res) => {
+    app.get("/payment-history", verifyJwt, async (req, res) => {
       const result = await paymentCollection
         .find({ email: req.query.email })
         .sort({ date: -1 })
