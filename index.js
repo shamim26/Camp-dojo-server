@@ -90,7 +90,15 @@ async function run() {
       next();
     };
 
-    // all classes
+    //* class api */
+
+    // get all classes
+    app.get("/all-classes", verifyJwt, verifyAdmin, async (req, res) => {
+      const result = await classCollection.find({}).toArray();
+      res.send(result);
+    });
+
+    // homepage classes
     app.get("/classes", async (req, res) => {
       const result = await classCollection
         .find({ status: "approved" })
