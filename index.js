@@ -66,6 +66,30 @@ async function run() {
       res.send({ token });
     });
 
+    // verify admin
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const user = await userCollection.findOne({ email: email });
+      if (user?.role !== "admin") {
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden access" });
+      }
+      next();
+    };
+
+    // verify instructor
+    const verifyInstructor = async (req, res, next) => {
+      const email = req.decoded.email;
+      const user = await userCollection.findOne({ email: email });
+      if (user?.role !== "instructor") {
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden access" });
+      }
+      next();
+    };
+
     // all classes
     app.get("/classes", async (req, res) => {
       const result = await classCollection
@@ -117,6 +141,32 @@ async function run() {
     });
 
     /*  user api */
+
+    // check admin
+    app.get("/users/admin/:email", verifyJwt, async (req, res) => {
+      const email = req.params.email;
+
+      if (req.decoded.email !== email) {
+        res.send({ admin: false });
+      }
+
+      const user = await userCollection.findOne({ email: email });
+      const result = { admin: user.role === "admin" };
+      res.send(result);
+    });
+
+    // check instructor
+    app.get("/users/instructor/:email", verifyJwt, async (req, res) => {
+      const email = req.params.email;
+
+      if (req.decoded.email !== email) {
+        res.send({ instructor: false });
+      }
+
+      const user = await userCollection.findOne({ email: email });
+      const result = { instructor: user.role === "instructor" };
+      res.send(result);
+    });
 
     // get instructors
     app.get("/users", async (req, res) => {
