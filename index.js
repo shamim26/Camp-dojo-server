@@ -61,7 +61,7 @@ async function run() {
     app.post("/jwt", (req, res) => {
       const user = req.body;
       const token = jwt.sign(user, process.env.JWT_SECRET, {
-        expiresIn: "10m",
+        expiresIn: "1h",
       });
       res.send({ token });
     });
@@ -173,6 +173,30 @@ async function run() {
 
       const user = await userCollection.findOne({ email: email });
       const result = { instructor: user.role === "instructor" };
+      res.send(result);
+    });
+
+    // get all users
+    app.get("/all-users", verifyJwt, verifyAdmin, async (req, res) => {
+      const result = await userCollection.find({}).sort({ role: 1 }).toArray();
+      res.send(result);
+    });
+
+    // update user
+    app.put("/all-users", verifyJwt, verifyAdmin, async (req, res) => {
+      const userRole = req.body.role;
+      const userEmail = req.body.email;
+      const option = { upsert: true };
+      const updateDoc = {
+        $set: {
+          role: userRole,
+        },
+      };
+      const result = await userCollection.updateOne(
+        { email: userEmail },
+        updateDoc,
+        option
+      );
       res.send(result);
     });
 
