@@ -99,7 +99,7 @@ async function run() {
     });
 
     // homepage classes
-    app.get("/classes", async (req, res) => {
+    app.get("/home-classes", async (req, res) => {
       const result = await classCollection
         .find({ status: "approved" })
         .sort({ enrolledStudents: -1 })
@@ -125,6 +125,13 @@ async function run() {
       res.send(result);
     });
 
+    // post class from instructor
+    app.post("/classes", verifyJwt, verifyInstructor, async (req, res) => {
+      const result = await classCollection.insertOne(req.body);
+      res.send(result);
+    });
+
+    // add to selected collection
     app.post("/selected-classes", async (req, res) => {
       const singleClass = req.body;
       const result = await selectedClassCollection.insertOne(singleClass);
@@ -148,7 +155,7 @@ async function run() {
       res.send(result);
     });
 
-    /*  user api */
+    /*---  user api ----*/
 
     // check admin
     app.get("/users/admin/:email", verifyJwt, async (req, res) => {
@@ -211,13 +218,16 @@ async function run() {
     // save users
     app.post("/users", async (req, res) => {
       const user = req.body;
-      const existingUser = await userCollection.findOne({ email: user.email });
+      const existingUser = await userCollection.findOne({ email: user?.email });
       if (existingUser) {
         return res.send({ message: "user already registered" });
       }
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
+
+    /* Payment Api */
+
     // payment intents
     app.post("/create-payment-intents", verifyJwt, async (req, res) => {
       const { price } = req.body;
@@ -233,7 +243,7 @@ async function run() {
       });
     });
 
-    // payment api
+    // payment history
     app.get("/payment-history", verifyJwt, async (req, res) => {
       const result = await paymentCollection
         .find({ email: req.query.email })
@@ -242,7 +252,7 @@ async function run() {
       res.send(result);
     });
 
-    app.post("/payments", async (req, res) => {
+    app.post("/payments", verifyJwt, async (req, res) => {
       const paymentResult = await paymentCollection.insertOne(req.body);
       const insertResult = await enrolledCollection.insertOne(
         req.body.classItem
