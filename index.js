@@ -90,7 +90,7 @@ async function run() {
       next();
     };
 
-    //* class api */
+    //*----- class api -------*/
 
     // get all classes
     app.get("/all-classes", verifyJwt, verifyAdmin, async (req, res) => {
@@ -208,7 +208,7 @@ async function run() {
         res.send({ admin: false });
       }
       const user = await userCollection.findOne({ email: email });
-      const result = { admin: user.role === "admin" };
+      const result = { admin: user?.role === "admin" };
       res.send(result);
     });
 
@@ -219,7 +219,7 @@ async function run() {
         res.send({ instructor: false });
       }
       const user = await userCollection.findOne({ email: email });
-      const result = { instructor: user.role === "instructor" };
+      const result = { instructor: user?.role === "instructor" };
       res.send(result);
     });
 
